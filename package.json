@@ -1,8 +1,13 @@
 {
-    "name": "dance",
+    "name": "slalom",
     "description": "Reverse Proxy HTTP Server for Host Routing.",
-    "author": "Tony Tahmouch tony@hapi.co",
-    "license": "GPL-2.0+",
+    "author": "Tony Tahmouch <tony@hapi.co>",
+    "licenses": [
+        {
+            "type": "GPL-2.0+",
+            "url": "https://github.com/ttahmouch/slalom/blob/master/LICENSE.md"
+        }
+    ],
     "version": "0.0.1",
     "main": "index.js",
     "scripts": {
@@ -11,10 +16,27 @@
     "engines": {
         "node": "0.10.x"
     },
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/ttahmouch/slalom.git"
+    },
     "dependencies": {
         "argo": "~0.4.7",
         "argo-clf": "~0.0.3",
         "argo-gzip": "~0.2.0",
-        "argo-url-router": "0.0.4"
+        "argo-url-router": "0.0.4",
+        "slop": "0.0.1"
+    },
+    "keywords": [
+        "reverse",
+        "proxy",
+        "http",
+        "argo",
+        "slop",
+        "host",
+        "router"
+    ],
+    "bugs": {
+        "url": "https://github.com/ttahmouch/slalom/issues"
     }
 }
