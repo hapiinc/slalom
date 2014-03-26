@@ -12,7 +12,7 @@
         gzip = require('argo-gzip'),
         router = require('argo-url-router'),
         logger = require('argo-clf'),
-        xop = require('xop'),
+        slop = require('slop'),
         https = require('https'),
         fs = require('fs');
 
@@ -37,7 +37,7 @@
      * - {boolean} true
      * - {boolean} false
      */
-    var options = xop().parse(process.argv),
+    var options = slop().parse(process.argv),
         port = options.get('port'),
         host = options.get('host'),
         lib = options.get('lib'),
