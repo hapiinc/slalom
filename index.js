@@ -8,20 +8,12 @@
     /**
      * Module dependencies.
      */
-    var argo = require('argo'),
-        logger = require('argo-clf'),
-        gzip = require('argo-gzip'),
+    var httpProxy = require('http-proxy'),
         repro = require('repro'),
         slop = require('slop'),
-        fs = require('fs'),
         http = require('http'),
-        https = require('https'),
         net = require('net'),
         uri = require('url');
-
-    var key = fs.readFileSync('ssl/key.pem', 'utf8'),
-        cert = fs.readFileSync('ssl/cert.pem', 'utf8'),
-        proxyTable = repro();
 
     /**
      * Process.argv will be an array.
@@ -81,10 +73,7 @@
          * POST /containers/create
          * Create a container
          *
-         * @param host is the Host of the Docker Remote API.
-         * @param port is the Port of the Docker Remote API.
-         * @param key is the SSL Key of the Docker Remote API.
-         * @param cert is the SSL Certificate of the Docker Remote API.
+         * @param socketPath is the Docker Unix Domain Socket path.
          * @param config is the Docker Container's Configuration.
          * @param name is the Docker Container's name. It is optional, but if included, it must
          * match /?[a-zA-Z0-9_-]+.
@@ -92,22 +81,17 @@
          * The argument of the Callback {Function} should be expecting a Container {Object} if successful, or
          * {null} if failure.
          */
-        createContainer: function (host, port, key, cert, config, name, callback) {
+        createContainer: function (socketPath, config, name, callback) {
             var queryString = typeof name === 'string' ? ('?name=' + name) : '',
                 request =
-                    https
+                    http
                         .request({
                             method: 'POST',
                             path: '/containers/create' + queryString,
                             headers: {
                                 'Content-Type': 'application/json'
                             },
-                            host: host,
-                            port: port,
-                            key: key,
-                            cert: cert,
-                            rejectUnauthorized: false,
-                            agent: false
+                            socketPath: socketPath
                         }, function (res) {
                             if (res.statusCode === 201) {
                                 var container = '';
@@ -134,32 +118,24 @@
          * POST /containers/(id)/start
          * Start the container id
          *
-         * @param host is the Host of the Docker Remote API.
-         * @param port is the Port of the Docker Remote API.
-         * @param key is the SSL Key of the Docker Remote API.
-         * @param cert is the SSL Certificate of the Docker Remote API.
+         * @param socketPath is the Docker Unix Domain Socket path.
          * @param id is the Identifier of the Docker Container.
          * @param hostConfig is the Docker Container's Host Configuration. It is optional.
          * @param callback is a Callback {Function} Object with an arity of one.
          * The argument of the Callback {Function} should be expecting a {boolean} true if successful, or
          * {boolean} false if failure.
          */
-        startContainer: function (host, port, key, cert, id, hostConfig, callback) {
+        startContainer: function (socketPath, id, hostConfig, callback) {
             hostConfig = !!hostConfig && typeof hostConfig === 'object' ? hostConfig : {}
             var request =
-                https
+                http
                     .request({
                         method: 'POST',
                         path: '/containers/' + id + '/start',
                         headers: {
                             'Content-Type': 'application/json'
                         },
-                        host: host,
-                        port: port,
-                        key: key,
-                        cert: cert,
-                        rejectUnauthorized: false,
-                        agent: false
+                        socketPath: socketPath
                     }, function (res) {
                         return callback(res.statusCode === 204);
                     })
@@ -175,26 +151,18 @@
          * POST /containers/(id)/stop
          * Stop the container id
          *
-         * @param host is the Host of the Docker Remote API.
-         * @param port is the Port of the Docker Remote API.
-         * @param key is the SSL Key of the Docker Remote API.
-         * @param cert is the SSL Certificate of the Docker Remote API.
+         * @param socketPath is the Docker Unix Domain Socket path.
          * @param id is the Identifier of the Docker Container.
          * @param callback is a Callback {Function} Object with an arity of one.
          * The argument of the Callback {Function} should be expecting a {boolean} true if successful, or
          * {boolean} false if failure.
          */
-        stopContainer: function (host, port, key, cert, id, callback) {
-            https
+        stopContainer: function (socketPath, id, callback) {
+            http
                 .request({
                     method: 'POST',
                     path: '/containers/' + id + '/stop',
-                    host: host,
-                    port: port,
-                    key: key,
-                    cert: cert,
-                    rejectUnauthorized: false,
-                    agent: false
+                    socketPath: socketPath
                 }, function (res) {
                     return callback(res.statusCode === 204);
                 })
@@ -209,26 +177,18 @@
          * GET /containers/(id)/json
          * Return low-level information on the container id.
          *
-         * @param host is the Host of the Docker Remote API.
-         * @param port is the Port of the Docker Remote API.
-         * @param key is the SSL Key of the Docker Remote API.
-         * @param cert is the SSL Certificate of the Docker Remote API.
+         * @param socketPath is the Docker Unix Domain Socket path.
          * @param id is the Identifier of the Docker Container.
          * @param callback is a Callback {Function} Object with an arity of one.
          * The argument of the Callback {Function} should be expecting a Container {Object} if successful, or
          * {null} if failure.
          */
-        inspectContainer: function (host, port, key, cert, id, callback) {
-            https
+        inspectContainer: function (socketPath, id, callback) {
+            http
                 .request({
                     method: 'GET',
                     path: '/containers/' + id + '/json',
-                    host: host,
-                    port: port,
-                    key: key,
-                    cert: cert,
-                    rejectUnauthorized: false,
-                    agent: false
+                    socketPath: socketPath
                 }, function (res) {
                     if (res.statusCode === 200) {
                         var container = '';
@@ -254,25 +214,17 @@
          * GET /containers/json
          * List containers
          *
-         * @param host is the Host of the Docker Remote API.
-         * @param port is the Port of the Docker Remote API.
-         * @param key is the SSL Key of the Docker Remote API.
-         * @param cert is the SSL Certificate of the Docker Remote API.
+         * @param socketPath is the Docker Unix Domain Socket path.
          * @param callback is a Callback {Function} Object with an arity of one.
          * The argument of the Callback {Function} should be expecting a Container {Array} if successful, or
          * {null} if failure.
          */
-        listContainers: function (host, port, key, cert, callback) {
-            https
+        listContainers: function (socketPath, callback) {
+            http
                 .request({
                     method: 'GET',
                     path: '/containers/json?all=1',
-                    host: host,
-                    port: port,
-                    key: key,
-                    cert: cert,
-                    rejectUnauthorized: false,
-                    agent: false
+                    socketPath: socketPath
                 }, function (res) {
                     if (res.statusCode === 200) {
                         var containers = '';
@@ -315,8 +267,8 @@
             /**
              * Map routes in the route table.
              * ssh://*.hapi.co:22 -> ssh://Docker.I.P.Address:22
-             * http://*.hapi.co:80 -> http://Docker.I.P.Address:80
-             * http://api.*.hapi.co:80 -> http://Docker.I.P.Address:8080
+             * http://*.hapi.co:80 -> http://Docker.I.P.Address:8080
+             * http://ide.*.hapi.co:80 -> http://Docker.I.P.Address:80
              *
              * The routes may be existing routes, or new routes because new Containers were created.
              */
@@ -325,8 +277,22 @@
                     'scheme': 'ssh',
                     'port': '22'
                 })
-                .addRoute(routeHost, targetHost)
-                .addRoute('api.' + routeHost, targetHost + ':8080');
+                .addRoute(routeHost, targetHost + ':8080')
+                .addRoute('ide.' + routeHost, targetHost);
+
+            /**
+             * Also map www.hapi.co routes as hapi.co to the route table.
+             */
+            if (routeHost.indexOf('www.') === 0) {
+                var modifiedRouteHost = routeHost.replace('www.', '');
+                proxyTable
+                    .addRoute(modifiedRouteHost, targetHost, {
+                        'scheme': 'ssh',
+                        'port': '22'
+                    })
+                    .addRoute(modifiedRouteHost, targetHost + ':8080')
+                    .addRoute('ide.' + modifiedRouteHost, targetHost);
+            }
 
             if (debug) {
                 console.log('------------------------------');
@@ -348,7 +314,7 @@
         if (Array.isArray(containers)) {
             for (var container in containers) {
                 container = containers[container];
-                Docker.inspectContainer('hapi.co', '4243', key, cert, container.Id, onContainerInspected);
+                Docker.inspectContainer('/var/docker.sock', container.Id, onContainerInspected);
             }
         }
     }
@@ -357,7 +323,7 @@
      * Convenience {Function} to start adding Docker Container routes to the proxy route table.
      */
     function getRoutes() {
-        Docker.listContainers('hapi.co', '4243', key, cert, onContainersListed);
+        Docker.listContainers('/var/docker.sock', onContainersListed);
     }
 
     /**
@@ -380,93 +346,112 @@
      * Create an HTTP Proxy Server capable of routing HTTP requests to their respective HTTP Origin Servers,
      * and capable of tunneling arbitrary TCP based protocols through to their respective Origin Servers.
      */
+    var proxyTable = repro(),
+        proxy = httpProxy.createProxy();
     http
-        .createServer(
-            argo()
-                .use(logger)
-                .use(gzip)
-                .use(function (handle) {
-                    handle('request', function (env, next) {
-                        /**
-                         * Host = "Host" ":" host [ ":" port ] ; Section 3.2.2
-                         *
-                         * @see http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.23
-                         */
-                        var req = env.request,
-                            res = env.response,
-                            target = env.target,
-                            connection = req.connection,
-                            headers = req.headers,
-                            url = req.url,
-                            host = headers['host'],
-                            hasTarget = proxyTable.hasTarget(host);
+        .createServer(function (req, res) {
+            /**
+             * Host = "Host" ":" host [ ":" port ] ; Section 3.2.2
+             *
+             * @see http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.23
+             */
+            var headers = req.headers,
+                host = headers['host'],
+                hasTarget = proxyTable.hasTarget(host);
 
-                        if (debug) {
-                            console.log('------------------------------');
-                            console.log('Host:');
-                            console.log(host);
-                            console.log('Has Target?');
-                            console.log(hasTarget);
-                            console.log('------------------------------');
-                        }
+            if (debug) {
+                console.log('------------------------------');
+                console.log('Host:');
+                console.log(host);
+                console.log('Has Target?');
+                console.log(hasTarget);
+                console.log('------------------------------');
+            }
 
-                        /**
-                         * Does the intended Host Route have a Target?
-                         * If yes, then forward the request to the Target.
-                         * If no, then respond with a 400 (Bad Request) status.
-                         */
-                        if (hasTarget) {
-                            /**
-                             * "by" identifies the user-agent facing interface of the proxy.
-                             * "for" identifies the node making the request to the proxy.
-                             * "host" is the host request header field as received by the proxy.
-                             * "proto" indicates what protocol was used to make the request.
-                             *
-                             * @see http://tools.ietf.org/html/draft-ietf-appsawg-http-forwarded-10#section-5
-                             */
-                            headers['X-Forwarded-For'] = connection.remoteAddress;
-                            headers['X-Forwarded-Host'] = host;
-                            headers['X-Forwarded-Proto'] = connection.encrypted ? 'https' : 'http';
-                            /**
-                             * The Target will always have the syntax:
-                             * scheme://host:port
-                             * The Url will always have the syntax:
-                             * /path?query_string#fragment_id
-                             */
-                            target.url = proxyTable.getTarget(host) + (!!url ? url : '');
+            if (hasTarget) {
+                var targetUrl = proxyTable.getTarget(host);
 
-                            if (debug) {
-                                console.log('------------------------------');
-                                console.log('Target:');
-                                console.log(target.url);
-                                console.log('------------------------------');
-                            }
-                        } else {
-                            /**
-                             * A client MUST include a Host header field in all HTTP/1.1 request messages.
-                             * If the requested URI does not include an Internet host name for the service being
-                             * requested, then the Host header field MUST be given with an empty value. An HTTP/1.1
-                             * proxy MUST ensure that any request message it forwards does contain an appropriate
-                             * Host header field that identifies the service being requested by the proxy. All
-                             * Internet-based HTTP/1.1 servers MUST respond with a 400 (Bad Request) status code to
-                             * any HTTP/1.1 request message which lacks a Host header field.
-                             *
-                             * @see http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.23
-                             *
-                             * If the host is not a valid host on the server, the response MUST be a 400 (Bad Request)
-                             * error message.
-                             *
-                             * @see http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5.2
-                             */
-                            res.statusCode = 400;
-                        }
+                proxy.web(req, res, {
+                    target: targetUrl
+                }, function (e) {
+                    if (debug) {
+                        console.log('------------------------------');
+                        console.log('Error:');
+                        console.error(e);
+                        console.log('------------------------------');
+                    }
+                    res.statusCode = 504;
+                    res.end();
+                });
 
-                        next(env);
-                    });
-                })
-                .build()
-                .run
-        )
+                if (debug) {
+                    console.log('------------------------------');
+                    console.log('Target:');
+                    console.log(targetUrl);
+                    console.log('------------------------------');
+                }
+            } else {
+                res.statusCode = 400;
+                res.end();
+            }
+        })
+        .on('upgrade', function (req, clientSocket, head) {
+            /**
+             * Host = "Host" ":" host [ ":" port ] ; Section 3.2.2
+             *
+             * @see http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.23
+             */
+            var headers = req.headers,
+                host = headers['host'],
+                badRequest = 'HTTP/1.1 400 Bad Request',
+                gatewayTimeout = '504 Gateway Timeout',
+                proxyAgent = 'Proxy-agent: Hapi-Proxy/1.0',
+                hasTarget = proxyTable.hasTarget(host);
+
+            if (debug) {
+                console.log('------------------------------');
+                console.log('Host:');
+                console.log(host);
+                console.log('Has Target?');
+                console.log(hasTarget);
+                console.log('------------------------------');
+            }
+
+            if (hasTarget) {
+                var targetUrl = proxyTable.getTarget(host);
+
+                proxy.ws(req, clientSocket, head, {
+                    target: targetUrl
+                }, function (e) {
+                    if (debug) {
+                        console.log('------------------------------');
+                        console.log('Error:');
+                        console.error(e);
+                        console.log('------------------------------');
+                    }
+                    clientSocket.write(gatewayTimeout + '\r\n' + proxyAgent + '\r\n\r\n');
+                    clientSocket.end();
+                    clientSocket.destroy();
+                });
+
+                if (debug) {
+                    console.log('------------------------------');
+                    console.log('Target:');
+                    console.log(targetUrl);
+                    console.log('------------------------------');
+                }
+            } else {
+                /**
+                 * If the host is not a valid host on the server, the response MUST be a 400 (Bad Request)
+                 * error message.
+                 *
+                 * @see http://www.w3.org/Protocols/rfc2616/rfc2616-sec5.html#sec5.2
+                 */
+                clientSocket.write(badRequest + '\r\n' + proxyAgent + '\r\n\r\n');
+                clientSocket.end();
+                clientSocket.destroy();
+            }
+        })
         .on('connect', function (req, clientSocket, head) {
             /**
              * The client connects to the proxy server, and uses the CONNECT method to specify the hostname and the
