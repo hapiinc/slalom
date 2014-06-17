@@ -21,9 +21,7 @@
         "url": "git://github.com/ttahmouch/slalom.git"
     },
     "dependencies": {
-        "argo": "~0.4.7",
-        "argo-clf": "~0.0.3",
-        "argo-gzip": "~0.2.0",
+        "http-proxy": "1.0.3",
         "repro": "0.1.0",
         "slop": "0.0.1"
     },
