@@ -6,8 +6,9 @@ A reverse proxy, hostname router that polls Docker for hosts.
 ## Installation
 
     cd paasta
+    make build n=base
     make build n=slalom
-    make run n=slalom r="-d -p 22 -p 80:8080 -e SSHKEY='KEY'"
+    make run n=slalom r="-d -p 80:8080 -v /var/run/docker.sock:/var/docker.sock --name=slalom.hapi.co"
 
 ## Usage
 
